@@ -295,7 +295,7 @@ class UssdAdvancedPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Basic
   }
 
   private fun multisessionUssd(ussdCode:String, subscriptionId:Int, @NonNull result: Result){
-    Log.d("PAL-USSD", "--------------------------------multisessionUssd")
+    Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++multisessionUssd")
 
     var slot = subscriptionId
     if(subscriptionId == -1){
@@ -305,11 +305,16 @@ class UssdAdvancedPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Basic
     ussdApi.callUSSDInvoke(activity!!, ussdCode, slot, object : USSDController.CallbackInvoke {
 
       override fun responseInvoke(ev: AccessibilityEvent) {
+        Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++multisessionUssd responseInvoke")
+
         event = AccessibilityEvent.obtain(ev)
         setListener()
 
         try {
+          Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++multisessionUssd responseInvoke try")
+
           if(ev.text.isNotEmpty()) {
+            Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++multisessionUssd responseInvoke"+ev.text)
             result.success(ev.text.first().toString())
           }else{
             result.success(null)
@@ -318,9 +323,12 @@ class UssdAdvancedPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Basic
       }
 
       override fun over(message: String) {
+        Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++multisessionUssd over")
         try {
           basicMessageChannel.setMessageHandler(null)
           basicMessageChannel.send(message)
+          Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++multisessionUssd over $message")
+
           result.success(message)
         }catch (e: Exception){}
 
