@@ -74,16 +74,26 @@ class UssdAdvancedPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Basic
   }
 
   override fun onMessage(message: String?, reply: BasicMessageChannel.Reply<String?>) {
+    Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++onMessage $message")
+
     if(message != null){
       USSDController.send2(message, event!!){
         event = AccessibilityEvent.obtain(it)
+        Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++onMessage : "+event.toString())
+
         try {
           if(it.text.isNotEmpty()) {
+            Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++onMessage try if: ${it.text}")
             reply.reply(it.text.first().toString())
           }else{
+            Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++onMessage try else")
+
             reply.reply(null)
           }
-        } catch (e: Exception){}
+        } catch (e: Exception){
+          Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++onMessage exception: $e")
+
+        }
 
       }
     }
@@ -317,9 +327,18 @@ class UssdAdvancedPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Basic
             Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++multisessionUssd responseInvoke"+ev.text)
             result.success(ev.text.first().toString())
           }else{
+            Log.d("PAL-USSD",
+              "++++++++++++++++++++++++++++++++++++++++multisessionUssd responseInvoke v.text.isempty$result"
+            )
+
             result.success(null)
           }
-        }catch (e: Exception){}
+        }catch (e: Exception){
+          Log.d("PAL-USSD",
+            "++++++++++++++++++++++++++++++++++++++++multisessionUssd responseInvoke xception $e"
+          )
+
+        }
       }
 
       override fun over(message: String) {
@@ -330,7 +349,9 @@ class UssdAdvancedPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Basic
           Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++multisessionUssd over $message")
 
           result.success(message)
-        }catch (e: Exception){}
+        }catch (e: Exception){
+          Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++multisessionUssd over excception $message")
+        }
 
       }
     })
