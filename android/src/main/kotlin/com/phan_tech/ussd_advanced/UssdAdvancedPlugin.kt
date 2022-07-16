@@ -74,24 +74,24 @@ class UssdAdvancedPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Basic
   }
 
   override fun onMessage(message: String?, reply: BasicMessageChannel.Reply<String?>) {
-    Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++onMessage $message")
+    // g("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++onMessage $message")
 
     if(message != null){
       USSDController.send2(message, event!!){
         event = AccessibilityEvent.obtain(it)
-        Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++onMessage : "+event.toString())
+        // Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++onMessage : "+event.toString())
 
         try {
           if(it.text.isNotEmpty()) {
-            Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++onMessage try if: ${it.text}")
+            // Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++onMessage try if: ${it.text}")
             reply.reply(it.text.first().toString())
           }else{
-            Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++onMessage try else")
+            // Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++onMessage try else")
 
             reply.reply(null)
           }
         } catch (e: Exception){
-          Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++onMessage exception: $e")
+          // Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++onMessage exception: $e")
 
         }
 
@@ -100,7 +100,7 @@ class UssdAdvancedPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Basic
   }
 
   override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: Result) {
-    Log.d("PAL-USSD", "--------------------------------onMethodCall"+call.method)
+    // Log.d("PAL-USSD", "--------------------------------onMethodCall"+call.method)
 
     var subscriptionId:Int = 1
     var code:String? = ""
@@ -132,24 +132,24 @@ class UssdAdvancedPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Basic
         result.success(defaultUssdService(code!!, subscriptionId))
       }
       "sendAdvancedUssd" -> {
-        Log.d("PAL-USSD", "--------------------------------onMethodCall: sendAdvancedUssd")
+        // Log.d("PAL-USSD", "--------------------------------onMethodCall: sendAdvancedUssd")
 
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
-          Log.d("PAL-USSD", "--------------------------------onMethodCall: sendAdvancedUssd if")
+          // Log.d("PAL-USSD", "--------------------------------onMethodCall: sendAdvancedUssd if")
 
           val res = singleSessionUssd(code!!, subscriptionId)
           if(res != null){
-            Log.d("PAL-USSD", "--------------------------------onMethodCall: res != null")
+            // Log.d("PAL-USSD", "--------------------------------onMethodCall: res != null")
 
             res.exceptionally { e: Throwable? ->
               if (e is RequestExecutionException) {
-                Log.d("PAL-USSD", "--------------------------------onMethodCall: e is RequestExecutionException")
+                // Log.d("PAL-USSD", "--------------------------------onMethodCall: e is RequestExecutionException")
 
                 result.error(
                   RequestExecutionException.type, e.message, null
                 )
               } else {
-                Log.d("PAL-USSD", "--------------------------------onMethodCall: e is not RequestExecutionException")
+                // Log.d("PAL-USSD", "--------------------------------onMethodCall: e is not RequestExecutionException")
 
                 result.error(RequestExecutionException.type, e?.message, null)
               }
@@ -157,12 +157,12 @@ class UssdAdvancedPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Basic
             }.thenAccept(result::success);
 
           }else{
-            Log.d("PAL-USSD", "--------------------------------onMethodCall: res == null")
+            // Log.d("PAL-USSD", "--------------------------------onMethodCall: res == null")
 
             result.success(res);
           }
         }else{
-          Log.d("PAL-USSD", "--------------------------------onMethodCall: sendAdvancedUssd else")
+          // Log.d("PAL-USSD", "--------------------------------onMethodCall: sendAdvancedUssd else")
 
           result.success(defaultUssdService(code!!, subscriptionId))
         }
@@ -196,7 +196,7 @@ class UssdAdvancedPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Basic
   }
 
   override fun onDetachedFromEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {
-    Log.d("PAL-USSD", "--------------------------------onDetachedFromEngine")
+    // Log.d("PAL-USSD", "--------------------------------onDetachedFromEngine")
 
     channel.setMethodCallHandler(null)
   }
@@ -220,7 +220,7 @@ class UssdAdvancedPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Basic
 
   // for android 8+
   private fun singleSessionUssd(ussdCode:String, subscriptionId:Int) : CompletableFuture<String>?{
-    Log.d("PAL-USSD", "--------------------------------singleSessionUssd")
+    // Log.d("PAL-USSD", "--------------------------------singleSessionUssd")
 
     // use defaulft sim
     val _useDefault: Boolean = subscriptionId == -1
@@ -246,18 +246,14 @@ class UssdAdvancedPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Basic
           override fun onReceiveUssdResponse(
             telephonyManager: TelephonyManager, request: String, response: CharSequence
           ) {
-            Log.d("PAL-USSD",
-              "--------------------------------singleSessionUssd onReceiveUssdResponse $response"
-            )
+            // Log.d("PAL-USSD", "--------------------------------singleSessionUssd onReceiveUssdResponse $response" )
             res.complete(response.toString())
           }
 
           override fun onReceiveUssdResponseFailed(
             telephonyManager: TelephonyManager, request: String, failureCode: Int
           ) {
-            Log.d("PAL-USSD",
-              "--------------------------------singleSessionUssd onReceiveUssdResponse $failureCode"
-            )
+            // Log.d("PAL-USSD", "--------------------------------singleSessionUssd onReceiveUssdResponse $failureCode" )
 
             when (failureCode) {
                       TelephonyManager.USSD_ERROR_SERVICE_UNAVAIL -> {
@@ -288,15 +284,13 @@ class UssdAdvancedPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Basic
         )
       }
 
-      Log.d("PAL-USSD",
-        "--------------------------------singleSessionUssd onReceiveUssdResponse $res"
-      )
+      // Log.d("PAL-USSD", "--------------------------------singleSessionUssd onReceiveUssdResponse $res" )
 
       return res
     }
     else{
       // if sdk is less than 26
-      Log.d("PAL-USSD", "--------------------------------singleSessionUssd is less than 26")
+      // Log.d("PAL-USSD", "--------------------------------singleSessionUssd is less than 26")
 
       defaultUssdService(ussdCode, subscriptionId)
       return  null
@@ -305,7 +299,7 @@ class UssdAdvancedPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Basic
   }
 
   private fun multisessionUssd(ussdCode:String, subscriptionId:Int, @NonNull result: Result){
-    Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++multisessionUssd")
+    // Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++multisessionUssd")
 
     var slot = subscriptionId
     if(subscriptionId == -1){
@@ -315,42 +309,38 @@ class UssdAdvancedPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Basic
     ussdApi.callUSSDInvoke(activity!!, ussdCode, slot, object : USSDController.CallbackInvoke {
 
       override fun responseInvoke(ev: AccessibilityEvent) {
-        Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++multisessionUssd responseInvoke")
+        // Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++multisessionUssd responseInvoke")
 
         event = AccessibilityEvent.obtain(ev)
         setListener()
 
         try {
-          Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++multisessionUssd responseInvoke try")
+          // Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++multisessionUssd responseInvoke try")
 
           if(ev.text.isNotEmpty()) {
-            Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++multisessionUssd responseInvoke"+ev.text)
+            // Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++multisessionUssd responseInvoke"+ev.text.toString())
             result.success(ev.text.first().toString())
           }else{
-            Log.d("PAL-USSD",
-              "++++++++++++++++++++++++++++++++++++++++multisessionUssd responseInvoke v.text.isempty$result"
-            )
+            // Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++multisessionUssd responseInvoke v.text.isempty$result" )
 
             result.success(null)
           }
         }catch (e: Exception){
-          Log.d("PAL-USSD",
-            "++++++++++++++++++++++++++++++++++++++++multisessionUssd responseInvoke xception $e"
-          )
+          // Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++multisessionUssd responseInvoke xception $e")
 
         }
       }
 
       override fun over(message: String) {
-        Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++multisessionUssd over")
+        // Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++multisessionUssd over")
         try {
           basicMessageChannel.setMessageHandler(null)
           basicMessageChannel.send(message)
-          Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++multisessionUssd over $message")
+          // Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++multisessionUssd over $message")
 
           result.success(message)
         }catch (e: Exception){
-          Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++multisessionUssd over excception $message")
+          // Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++multisessionUssd over excception $message")
         }
 
       }
@@ -358,7 +348,7 @@ class UssdAdvancedPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Basic
   }
 
   private fun multisessionUssdCancel(){
-    Log.d("PAL-USSD", "--------------------------------multisessionUssdCancel")
+    // Log.d("PAL-USSD", "--------------------------------multisessionUssdCancel")
 
     if(event != null){
       basicMessageChannel.setMessageHandler(null)
@@ -387,7 +377,7 @@ class UssdAdvancedPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Basic
 
   // multiple for all
   private fun defaultUssdService(ussdCode:String, subscriptionId:Int){
-    Log.d("PAL-USSD", "--------------------------------defaultUssdService")
+    // Log.d("PAL-USSD", "--------------------------------defaultUssdService")
 
     if (ContextCompat.checkSelfPermission(this.context!!, android.Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
       if (ActivityCompat.shouldShowRequestPermissionRationale(activity!!, android.Manifest.permission.CALL_PHONE)) {
@@ -444,12 +434,10 @@ class UssdAdvancedPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Basic
   }
 
   private fun isTelephonyEnabled(): Boolean {
-    Log.d("PAL-USSD", "--------------------------------isTelephonyEnabled")
+    // Log.d("PAL-USSD", "--------------------------------isTelephonyEnabled")
 
     val tm = this.context!!.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
-    Log.d("PAL-USSD",
-      ("--------------------------------isTelephonyEnabled"+(tm.phoneType != TelephonyManager.PHONE_TYPE_NONE))
-    )
+    // Log.d("PAL-USSD", ("--------------------------------isTelephonyEnabled"+(tm.phoneType != TelephonyManager.PHONE_TYPE_NONE)) )
 
     return tm.phoneType != TelephonyManager.PHONE_TYPE_NONE
 
