@@ -86,16 +86,31 @@ class UssdAdvanced {
 
 class _CodeAndBody {
   _CodeAndBody(this.code, this.messages);
-  _CodeAndBody.fromUssdCode(String _code) {
-    var _removeCode = _code.split('#')[0];
-    var items = _removeCode.split("*").toList();
 
-    code = '*${items[1]}#';
+  _CodeAndBody.fromUssdCode(String input) {
+    if (input.startsWith("*")) {
+      // 🔹 Cas 1 : code du type *123*45#
+      var core = input.substring(1, input.length - 1); // enlève * au début et # à la fin
+      var items = core.split("*");
 
-    if (items.length > 1) {
-      messages = items.sublist(2);
+      code = '*${items[0]}#'; // racine (ex: *123#)
+      messages = items.length > 1 ? items.sublist(1) : null;
+
+    } else if (input.startsWith("#")) {
+      // 🔹 Cas 2 : code du type #124#2#
+      var core = input.substring(1, input.length - 1); // enlève # au début et à la fin
+      var items = core.split("#");
+
+      code = '#${items[0]}#'; // racine (ex: #124#)
+      messages = items.length > 1 ? items.sublist(1) : null;
+
+    } else {
+      // 🔹 Cas non reconnu
+      code = input;
+      messages = null;
     }
   }
+
   late String code;
   List<String>? messages;
 }
