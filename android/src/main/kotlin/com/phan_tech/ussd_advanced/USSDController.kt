@@ -236,19 +236,35 @@ object USSDController : USSDInterface, USSDApi {
     }
 
     private fun isAccessibilityServicesEnable(context: Context): Boolean {
-        (context.getSystemService(Context.ACCESSIBILITY_SERVICE) as? AccessibilityManager)?.apply {
-            installedAccessibilityServiceList.forEach { service ->
-                if (service.id.contains(context.packageName) &&
-                        Settings.Secure.getInt(context.applicationContext.contentResolver, Settings.Secure.ACCESSIBILITY_ENABLED) == 1){
-                    Settings.Secure.getString(context.applicationContext.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES)?.let {
-                        if (it.split(':').contains(service.id)) return true
-                    }
-                }else if(service.id.contains(context.packageName) && Settings.Secure.getString(context.applicationContext.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES).toString().contains(service.id)){
-                    return true;
+        try {
+            (context.getSystemService(Context.ACCESSIBILITY_SERVICE) as? AccessibilityManager)?.apply {
+                val enabledServices = Settings.Secure.getString(
+                    context.applicationContext.contentResolver,
+                    Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+                ) ?: return false
+
+                val accessibilityEnabled = try {
+                    Settings.Secure.getInt(
+                        context.applicationContext.contentResolver,
+                        Settings.Secure.ACCESSIBILITY_ENABLED
+                    )
+                } catch (e: Settings.SettingNotFoundException) {
+                    0
                 }
 
-
+                installedAccessibilityServiceList.forEach { service ->
+                    if (service.id.contains(context.packageName)) {
+                        if (accessibilityEnabled == 1 && enabledServices.split(':').contains(service.id)) {
+                            return true
+                        }
+                        if (enabledServices.contains(service.id)) {
+                            return true
+                        }
+                    }
+                }
             }
+        } catch (e: Exception) {
+            android.util.Log.e("USSDController", "Error checking accessibility: ${e.message}")
         }
         return false
     }
