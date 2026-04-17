@@ -6,9 +6,25 @@ import 'package:flutter/services.dart';
 class UssdAdvanced {
   static const MethodChannel _channel =
       MethodChannel('method.com.phan_tech/ussd_advanced');
-  //Initialize BasicMessageChannel
   static const BasicMessageChannel<String> _basicMessageChannel =
       BasicMessageChannel("message.com.phan_tech/ussd_advanced", StringCodec());
+
+  static Future<bool> isAccessibilityEnabled() async {
+    try {
+      final bool result = await _channel.invokeMethod('checkAccessibility');
+      return result;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  static Future<void> requestAccessibilityPermission() async {
+    try {
+      await _channel.invokeMethod('requestAccessibility');
+    } catch (e) {
+      // Silently fail
+    }
+  }
 
   static Future<void> sendUssd(
       {required String code, int subscriptionId = 1}) async {

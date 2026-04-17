@@ -2,7 +2,16 @@
   package="com.phan_tech.ussd_advanced">
 
     <uses-permission android:name="android.permission.CALL_PHONE" />
-    <uses-permission android:name="android.Manifest.permission.CALL_PHONE" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
-    <uses-permission android:name="android.Manifest.permission.READ_PHONE_STATE" />
+
+    <!-- Android 11+ : visibilité du package com.android.phone pour l'AccessibilityService -->
+    <queries>
+        <package android:name="com.android.phone" />
+        <package android:name="com.android.server.telecom" />
+        <intent>
+            <action android:name="android.intent.action.CALL" />
+            <data android:scheme="tel" />
+        </intent>
+    </queries>
+
 </manifest>

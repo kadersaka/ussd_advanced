@@ -6,11 +6,13 @@
 package com.phan_tech.ussd_advanced;
 
 import android.accessibilityservice.AccessibilityService;
+import android.accessibilityservice.AccessibilityServiceInfo;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 
@@ -144,11 +146,41 @@ public class USSDServiceKT extends AccessibilityService {
      * @return boolean AccessibilityEvent is USSD
      */
     private boolean isUSSDWidget(AccessibilityEvent event) {
-        return (event.getClassName().equals("amigo.app.AmigoAlertDialog")
-                || event.getClassName().equals("android.app.AlertDialog")
-                || event.getClassName().equals("com.android.phone.oppo.settings.LocalAlertDialog")
-                || event.getClassName().equals("com.zte.mifavor.widget.AlertDialog")
-                || event.getClassName().equals("color.support.v7.app.AlertDialog"));
+        String className = event.getClassName() != null ? event.getClassName().toString() : "";
+        String packageName = event.getPackageName() != null ? event.getPackageName().toString() : "";
+        Log.d("USSD-Widget", "className=" + className + " pkg=" + packageName);
+
+        // Direct class match for known USSD dialog classes
+        if (className.equals("android.app.AlertDialog")
+                || className.equals("android.app.Dialog")
+                || className.equals("androidx.appcompat.app.AlertDialog")
+                || className.equals("amigo.app.AmigoAlertDialog")
+                || className.equals("com.android.phone.oppo.settings.LocalAlertDialog")
+                || className.equals("com.zte.mifavor.widget.AlertDialog")
+                || className.equals("color.support.v7.app.AlertDialog")
+                || className.equals("miui.app.AlertDialog")
+                || className.equals("com.samsung.android.app.SemAlertDialog")
+                || className.equals("com.transsion.hubble.notification.AlertDialog")
+                || className.equals("android.app.ProgressDialog")) {
+            return true;
+        }
+
+        // Fallback: if the event comes from com.android.phone and contains text, treat as USSD
+        if (packageName.equals("com.android.phone")
+                || packageName.equals("com.android.server.telecom")
+                || packageName.equals("com.samsung.android.dialer")
+                || packageName.equals("com.mediatek.ims")) {
+            if (event.getText() != null && !event.getText().isEmpty()) {
+                return true;
+            }
+        }
+
+        // Generic fallback: class name contains AlertDialog
+        if (className.toLowerCase().contains("alertdialog") || className.toLowerCase().contains("ussd")) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -225,6 +257,22 @@ public class USSDServiceKT extends AccessibilityService {
     @Override
     protected void onServiceConnected() {
         super.onServiceConnected();
-//        Timber.d("onServiceConnected");
+        Log.d("USSD-Service", "onServiceConnected - configuring for Android " + Build.VERSION.SDK_INT);
+
+        AccessibilityServiceInfo info = getServiceInfo();
+        if (info != null) {
+            info.eventTypes = AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
+                    | AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED;
+            info.feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC;
+            info.flags = AccessibilityServiceInfo.FLAG_INCLUDE_NOT_IMPORTANT_VIEWS
+                    | AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS
+                    | AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS;
+            info.notificationTimeout = 0;
+            // Sur Android 13+, ne pas filtrer par packageNames pour capturer tous les dialogues USSD
+            // car certains OEM utilisent des packages différents
+            info.packageNames = null;
+            setServiceInfo(info);
+            Log.d("USSD-Service", "Service info updated: eventTypes=0x" + Integer.toHexString(info.eventTypes));
+        }
     }
 }

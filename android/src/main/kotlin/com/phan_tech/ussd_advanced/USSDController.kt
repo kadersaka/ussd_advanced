@@ -228,6 +228,8 @@ object USSDController : USSDInterface, USSDApi {
                 if (!it) openSettingsAccessibility(context as Activity)
             }
 
+    fun verifyAccessibilityAccessSilent(context: Context): Boolean =
+            isAccessibilityServicesEnable(context)
 
     private fun openSettingsAccessibility(activity: Activity) {
         activity.startActivityForResult(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS), 1)

@@ -13,7 +13,6 @@ import android.telephony.TelephonyManager
 import android.telephony.TelephonyManager.UssdResponseCallback
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
-import androidx.annotation.NonNull
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import io.flutter.embedding.engine.plugins.FlutterPlugin
@@ -22,7 +21,6 @@ import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.*
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
-import io.flutter.plugin.common.PluginRegistry.Registrar
 import java.util.concurrent.CompletableFuture
 
 
@@ -78,21 +76,21 @@ class UssdAdvancedPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Basic
 
     if(message != null){
       USSDController.send2(message, event!!){
-        event = AccessibilityEvent.obtain(it)
-        // Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++onMessage : "+event.toString())
+        event = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+          AccessibilityEvent(it)
+        } else {
+          @Suppress("DEPRECATION")
+          AccessibilityEvent.obtain(it)
+        }
 
         try {
           if(it.text.isNotEmpty()) {
-            // Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++onMessage try if: ${it.text}")
             reply.reply(it.text.first().toString())
           }else{
-            // Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++onMessage try else")
-
             reply.reply(null)
           }
         } catch (e: Exception){
-          // Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++onMessage exception: $e")
-
+          Log.e("USSD", "onMessage exception: $e")
         }
 
       }
@@ -189,6 +187,16 @@ class UssdAdvancedPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Basic
       "multisessionUssdCancel" ->{
         multisessionUssdCancel()
       }
+      "checkAccessibility" -> {
+        val isEnabled = USSDController.verifyAccessibilityAccessSilent(context!!)
+        result.success(isEnabled)
+      }
+      "requestAccessibility" -> {
+        if (activity != null) {
+          activity!!.startActivity(Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS))
+        }
+        result.success(null)
+      }
       else -> {
         result.notImplemented()
       }
@@ -227,15 +235,26 @@ class UssdAdvancedPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Basic
 
     if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
       var res:CompletableFuture<String> = CompletableFuture<String>()
-      // check permissions
+      // check CALL_PHONE permission
       if (ContextCompat.checkSelfPermission(this.context!!, android.Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
-        if (ActivityCompat.shouldShowRequestPermissionRationale(activity!!, android.Manifest.permission.CALL_PHONE)) {
-        } else {
+        if (activity != null && !ActivityCompat.shouldShowRequestPermissionRationale(activity!!, android.Manifest.permission.CALL_PHONE)) {
           ActivityCompat.requestPermissions(activity!!, arrayOf(android.Manifest.permission.CALL_PHONE), 2)
         }
       }
 
-      // get TelephonyManager
+      // Android 13+ (API 33): READ_PHONE_NUMBERS est requis pour sendUssdRequest
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        if (ContextCompat.checkSelfPermission(this.context!!, android.Manifest.permission.READ_PHONE_NUMBERS) != PackageManager.PERMISSION_GRANTED) {
+          if (activity != null) {
+            ActivityCompat.requestPermissions(activity!!, arrayOf(
+              android.Manifest.permission.CALL_PHONE,
+              android.Manifest.permission.READ_PHONE_STATE,
+              android.Manifest.permission.READ_PHONE_NUMBERS
+            ), 2)
+          }
+        }
+      }
+
       val tm = this.context!!.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
 
       val simManager: TelephonyManager = tm.createForSubscriptionId(subscriptionId)
@@ -309,25 +328,22 @@ class UssdAdvancedPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Basic
     ussdApi.callUSSDInvoke(activity!!, ussdCode, slot, object : USSDController.CallbackInvoke {
 
       override fun responseInvoke(ev: AccessibilityEvent) {
-        // Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++multisessionUssd responseInvoke")
-
-        event = AccessibilityEvent.obtain(ev)
+        event = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+          AccessibilityEvent(ev)
+        } else {
+          @Suppress("DEPRECATION")
+          AccessibilityEvent.obtain(ev)
+        }
         setListener()
 
         try {
-          // Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++multisessionUssd responseInvoke try")
-
           if(ev.text.isNotEmpty()) {
-            // Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++multisessionUssd responseInvoke"+ev.text.toString())
             result.success(ev.text.first().toString())
           }else{
-            // Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++multisessionUssd responseInvoke v.text.isempty$result" )
-
             result.success(null)
           }
         }catch (e: Exception){
-          // Log.d("PAL-USSD", "++++++++++++++++++++++++++++++++++++++++multisessionUssd responseInvoke xception $e")
-
+          Log.e("USSD", "multisessionUssd responseInvoke exception: $e")
         }
       }
 
