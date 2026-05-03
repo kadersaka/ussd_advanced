@@ -51,27 +51,43 @@ public class USSDServiceKT extends AccessibilityService {
         if(!event.getText().isEmpty()) {
             response = event.getText().get(0).toString();
         }
+        boolean isLoadingState = isLoadingOrRunningMessage(response);
+        boolean isIgnorableSystemState = isIgnorableSystemMessage(response);
+
         if (LoginView(event) && notInputText(event)) {
-            // first view or logView, do nothing, pass / FIRST MESSAGE
+            if (isLoadingState || isIgnorableSystemState) {
+                Log.d("USSD-Service", "KEEP_DIALOG_OPEN_ON_INTERMEDIATE_STATE (login/no-input): " + response);
+                return;
+            }
             clickOnButton(event, 0);
             ussd.stopRunning();
             USSDController.callbackInvoke.over(response != null ? response : "");
         } else if (problemView(event) || LoginView(event)) {
-            // deal down
             clickOnButton(event, 1);
             USSDController.callbackInvoke.over(response != null ? response : "");
         } else if (isUSSDWidget(event)) {
-//            Timber.d("catch a USSD widget/Window");
             if (notInputText(event)) {
-                // not more input panels / LAST MESSAGE
-                // sent 'OK' button
-//                Timber.d("No inputText found & closing USSD process");
+                if (isLoadingState || isIgnorableSystemState) {
+                    Log.d("USSD-Service", "KEEP_DIALOG_OPEN_ON_INTERMEDIATE_STATE (ussd/no-input): " + response);
+                    return;
+                }
+                // Menus sans EditText : ne pas appeler over() tant que la session multi est active,
+                // sinon le 1er écran ferme la session et les sendMessage suivants ne sont plus traités.
+                if (Boolean.TRUE.equals(ussd.getSendType()) && ussd.getCallbackMessage() != null) {
+                    Log.d("USSD-Service", "MULTI_SESSION_POST_SEND_SCREEN (no-input): " + response);
+                    ussd.getCallbackMessage().invoke(event);
+                    return;
+                }
+                if (!Boolean.TRUE.equals(ussd.getSendType()) && Boolean.TRUE.equals(ussd.isRunning())) {
+                    Log.d("USSD-Service", "MULTI_SESSION_FIRST_SCREEN (no-input): " + response);
+                    USSDController.callbackInvoke.responseInvoke(event);
+                    return;
+                }
                 clickOnButton(event, 0);
                 ussd.stopRunning();
                 USSDController.callbackInvoke.over(response != null ? response : "");
             } else {
-                // sent option 1
-                if (ussd.getSendType() == true)
+                if (Boolean.TRUE.equals(ussd.getSendType()))
                     ussd.getCallbackMessage().invoke(event);
                 else USSDController.callbackInvoke.responseInvoke(event);
             }
@@ -137,6 +153,31 @@ public class USSDServiceKT extends AccessibilityService {
         for (AccessibilityNodeInfo leaf : getLeaves(event))
             if (leaf.getClassName().equals("android.widget.EditText")) return false;
         return true;
+    }
+
+    private boolean isLoadingOrRunningMessage(String response) {
+        if (response == null) return false;
+        String msg = response.toLowerCase();
+        return msg.contains("ussd code running")
+                || msg.contains("running")
+                || msg.contains("please wait")
+                || msg.contains("wait")
+                || msg.contains("loading")
+                || msg.contains("en cours")
+                || msg.contains("patientez")
+                || msg.contains("veuillez patienter");
+    }
+
+    private boolean isIgnorableSystemMessage(String response) {
+        if (response == null) return false;
+        String msg = response.trim().toLowerCase();
+        return msg.equals("phone services")
+                || msg.equals("phone service")
+                || msg.equals("services téléphoniques")
+                || msg.equals("services telephoniques")
+                || msg.equals("sim toolkit")
+                || msg.equals("boîte à outils sim")
+                || msg.equals("boite a outils sim");
     }
 
     /**
