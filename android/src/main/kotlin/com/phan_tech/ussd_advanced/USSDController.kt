@@ -60,6 +60,13 @@ object USSDController : USSDInterface, USSDApi {
     var sendType: Boolean? = false
         private set
 
+    /**
+     * Évite d'appeler [CallbackInvoke.responseInvoke] plusieurs fois pour le même premier écran USSD
+     * (Android ≤12 envoie souvent WINDOW_STATE_CHANGED puis WINDOW_CONTENT_CHANGED).
+     */
+    @JvmField
+    var multisessionInitialResponseDelivered: Boolean = false
+
     private var ussdInterface: USSDInterface? = null
 
     init {
@@ -107,6 +114,7 @@ object USSDController : USSDInterface, USSDApi {
     override fun callUSSDInvoke(context: Context, ussdPhoneNumber: String, simSlot: Int,
                                 callbackInvoke: CallbackInvoke) {
 		sendType = false
+        multisessionInitialResponseDelivered = false
         this.context = context
         this.callbackInvoke = callbackInvoke
         if (verifyAccessibilityAccess(this.context)) {
@@ -170,6 +178,7 @@ object USSDController : USSDInterface, USSDApi {
 
     override fun stopRunning() {
         isRunning = false
+        multisessionInitialResponseDelivered = false
     }
 
     /**

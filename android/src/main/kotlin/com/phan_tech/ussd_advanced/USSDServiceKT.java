@@ -32,6 +32,19 @@ public class USSDServiceKT extends AccessibilityService {
     private static AccessibilityEvent event;
 
     /**
+     * Premier résultat multisession : un seul {@code responseInvoke} (événements d'accessibilité dupliqués).
+     */
+    private void deliverMultisessionInitialResponse(USSDController ussd, AccessibilityEvent event) {
+        // @JvmField sur Kotlin → champ public, pas de getter/setter Java
+        if (ussd.multisessionInitialResponseDelivered) {
+            Log.d("USSD-Service", "SKIP_DUPLICATE_MULTISESSION_INITIAL");
+            return;
+        }
+        ussd.multisessionInitialResponseDelivered = true;
+        USSDController.callbackInvoke.responseInvoke(event);
+    }
+
+    /**
      * Catch widget by Accessibility, when is showing at mobile display
      *
      * @param event AccessibilityEvent
@@ -80,7 +93,7 @@ public class USSDServiceKT extends AccessibilityService {
                 }
                 if (!Boolean.TRUE.equals(ussd.getSendType()) && Boolean.TRUE.equals(ussd.isRunning())) {
                     Log.d("USSD-Service", "MULTI_SESSION_FIRST_SCREEN (no-input): " + response);
-                    USSDController.callbackInvoke.responseInvoke(event);
+                    deliverMultisessionInitialResponse(ussd, event);
                     return;
                 }
                 clickOnButton(event, 0);
@@ -89,7 +102,8 @@ public class USSDServiceKT extends AccessibilityService {
             } else {
                 if (Boolean.TRUE.equals(ussd.getSendType()))
                     ussd.getCallbackMessage().invoke(event);
-                else USSDController.callbackInvoke.responseInvoke(event);
+                else
+                    deliverMultisessionInitialResponse(ussd, event);
             }
         }
 
